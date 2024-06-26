@@ -16,7 +16,7 @@ module Fastlane
         end
 
         private_key = private_key.strip
-        Helper::Uploader.authorize(params[:company_id], private_key)
+        Helper::Uploader.authorize(params[:key_id], private_key)
         UI.success("Credentials for RuStore account are successfully saved for further actions")
       end
 
@@ -32,19 +32,29 @@ module Fastlane
         [:android].include?(platform)
       end
 
+      def self.output
+        [
+          ["RUSTORE_KEY_ID", "ID of private key"],
+          ["RUSTORE_PRIVATE_KEY_FILE", "The path to file where private API key is located"],
+          ["RUSTORE_PRIVATE_KEY", "The private API key content (instead of file)"]
+        ]
+      end
+
       def self.available_options
         [
           FastlaneCore::ConfigItem.new(
-            key: :company_id,
-            description: "ID of RuStore company",
+            key: :key_id,
+            env_name: "RUSTORE_KEY_ID",
+            description: "ID of private key",
             optional: false,
             type: String,
             verify_block: proc do |value|
-              UI.user_error!("Company ID can't be empty") unless value && !value.empty?
+              UI.user_error!("Private key ID can't be empty") unless value && !value.empty?
             end
           ),
           FastlaneCore::ConfigItem.new(
             key: :private_key_file,
+            env_name: "RUSTORE_PRIVATE_KEY_FILE",
             description: [
               "The path to file where private API key is located.",
               "Either use it or provide the raw key content with `private_key` option"
@@ -60,6 +70,7 @@ module Fastlane
           ),
           FastlaneCore::ConfigItem.new(
             key: :private_key,
+            env_name: "RUSTORE_PRIVATE_KEY",
             description: [
               "The private API key content.",
               "Either use it or provide the key content in a file with `private_key_file` option"
