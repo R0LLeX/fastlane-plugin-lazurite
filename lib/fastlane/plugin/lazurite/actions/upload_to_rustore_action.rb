@@ -9,17 +9,24 @@ module Fastlane
       CHANGELOG_LENGTH = 500
       SCREENSHOTS_COUNT = 10
       APP_CATEGORIES_COUNT = 2
-      PACKAGES_COUNT = 10
+
+      APK_ONLY_PACKAGES_COUNT = 10
+      APK_PACKAGES_COUNT = 8
+      AAB_PACKAGES_COUNT = 1
 
       def self.run(params)
         UI.user_error!("Publish time must be provided while uploading with DELAYED type of publishing") if
           params.values[:publish_type] == Helper::PublishType::DELAYED && params.values[:publish_date_time].nil?
         UI.user_error!("App categories validation failed. Check the errors above.") unless validate_app_categories(params)
+        UI.user_error!("No APK or AAB packages were specified") if params.values.include?(:apk_paths) && !params.values[:apk_paths].nil? && params.values[:apk_paths].empty? ||
+                                                                   params.values.include?(:aab_paths) && !params.values[:aab_paths].nil? && params.values[:aab_paths].empty?
 
         version = create_draft(params)
         upload_apk(params, version)
+        upload_aab(params, version)
         upload_icon(params, version)
         upload_screenshots(params, version)
+        commit(params, version)
       end
 
       def self.description
@@ -38,6 +45,7 @@ module Fastlane
         [
           FastlaneCore::ConfigItem.new(
             key: :package_name,
+            env_name: "RUSTORE_PACKAGE_NAME",
             description: "The package name of the application to use",
             optional: false,
             type: String,
@@ -47,6 +55,7 @@ module Fastlane
           ),
           FastlaneCore::ConfigItem.new(
             key: :app_name,
+            env_name: "RUSTORE_APP_NAME",
             description: "The custom application name",
             optional: true,
             type: String,
@@ -126,32 +135,28 @@ module Fastlane
             end
           ),
           FastlaneCore::ConfigItem.new(
-            key: :apks,
+            key: :apk_paths,
+            env_name: "RUSTORE_APK_PATHS",
             description: "An array of paths to APK files and their metadata to upload",
-            optional: false,
+            optional: true,
             type: Array,
             verify_block: proc do |array|
-              UI.user_error!("Packages array can't be empty") if array.empty?
-              UI.important("Maximum count of packages is #{PACKAGES_COUNT}") if array.length > PACKAGES_COUNT
-
-              counter = 0
-              has_error = false
-
-              array.each do |value|
-                has_error &&= !validate_apk(value, counter)
-                counter += 1
-              end
-
-              unless array.find_all { |x| x.include?(:is_main_apk) && x[:is_main_apk] == true }.empty?
-                UI.error(`Only one package can be chosen as main`)
-                has_error = true
-              end
-
-              UI.user_error!("Some APK settings contain errors. Check them above.") if has_error
+              UI.user_error!("APK packages array can't be empty") if array.empty?
+            end
+          ),
+          FastlaneCore::ConfigItem.new(
+            key: :aab_paths,
+            env_name: "RUSTORE_AAB_PATHS",
+            description: "An array of paths to AAB files and their metadata to upload",
+            optional: true,
+            type: Array,
+            verify_block: proc do |array|
+              UI.user_error!("AAB packages array can't be empty") if array.empty?
             end
           ),
           FastlaneCore::ConfigItem.new(
             key: :icon,
+            env_name: "RUSTORE_ICON_PATH",
             description: "The path to an application icon",
             optional: true,
             type: String,
@@ -162,6 +167,7 @@ module Fastlane
           ),
           FastlaneCore::ConfigItem.new(
             key: :screenshots,
+            env_name: "RUSTORE_SCREENSHOTS_PATH",
             description: "An array of paths to screenshots to upload",
             optional: true,
             type: Array,
@@ -189,9 +195,10 @@ module Fastlane
           ),
           FastlaneCore::ConfigItem.new(
             key: :timeout,
+            env_name: "RUSTORE_PUSHING_TIMEOUT",
             description: "Request timeout in seconds applied to individual HTTP requests",
             optional: true,
-            default_value: 1200,
+            default_value: 600,
             type: Integer,
             verify_block: proc do |value|
               UI.important("Request timeout can't be less than or equal to zero. Using default value.") if
@@ -206,11 +213,11 @@ module Fastlane
       end
 
       def self.create_draft(params)
-        # remove active draft if needed
-        if params.values.include?(:remove_active_draft) && [true].include?(params.values[:remove_active_draft])
-          active_version = Helper::Uploader.get_active_version(params[:package_name], params[:timeout])
+        active_version = Helper::Uploader.get_active_version(params[:package_name], params[:timeout])
 
-          unless active_version == -1
+        if active_version != -1
+          # remove active draft if needed
+          if params.values.include?(:remove_active_draft) && [true].include?(params.values[:remove_active_draft])
             data = {
               package: params[:package_name],
               version: active_version
@@ -219,6 +226,9 @@ module Fastlane
             UI.message("Removing active draft with ID = #{active_version} ...")
             Helper::Uploader.remove_draft(data, params[:timeout])
             UI.success("The draft ID = #{active_version} has been removed")
+          else
+            UI.message("Use existing draft with ID = #{active_version}. Data fields would be ignored.")
+            return
           end
         end
 
@@ -243,11 +253,17 @@ module Fastlane
       end
 
       def self.upload_apk(params, version)
-        UI.message("Process packages ...")
+        return unless params.values.include?(:apk_paths) && !params.values[:apk_paths].nil? &&
+                      !params.values[:apk_paths].empty?
 
+        UI.message("Process APK packages ...")
+
+        has_aab = params.values.include?(:aab_paths) && !params.values[:aab_paths].nil? &&params.values[:aab_paths].length.positive?
+        max_count = has_aab ? APK_PACKAGES_COUNT : APK_ONLY_PACKAGES_COUNT
         counter = 0
-        params.values[:apks].each do |apk|
-          break if counter >= PACKAGES_COUNT
+
+        params.values[:apk_paths].each do |apk|
+          break if counter >= max_count
 
           data = {
             package: params[:package_name],
@@ -266,7 +282,40 @@ module Fastlane
           end
 
           UI.message("---------------------")
-          Helper::Uploader.upload_apk(data, params[:timeout])
+          Helper::Uploader.upload_package(data, false, params[:timeout])
+          UI.success("Package has been uploaded successfully")
+
+          counter += 1
+        end
+      end
+
+      def self.upload_aab(params, version)
+        return unless params.values.include?(:aab_paths) && !params.values[:aab_paths].nil? &&
+                      !params.values[:aab_paths].empty?
+        
+        UI.message("Process AAB packages ...")
+
+        counter = 0
+
+        params.values[:apk_paths].each do |aab|
+          break if counter >= AAB_PACKAGES_COUNT
+
+          data = {
+            package: params[:package_name],
+            version: version,
+            file: File.expand_path(aab[:file])
+          }
+
+          UI.message("Uploading package with the following values:")
+          UI.message("---------------------")
+
+          data_str = JSON.pretty_generate(data)
+          data_str.each_line do |x|
+            UI.message(x.gsub("\n", ""))
+          end
+
+          UI.message("---------------------")
+          Helper::Uploader.upload_package(data, true, params[:timeout])
           UI.success("Package has been uploaded successfully")
 
           counter += 1
@@ -340,6 +389,34 @@ module Fastlane
         UI.message("Committing the draft ...")
         Helper::Uploader.commit(data, params[:timeout])
         UI.success("Submission passed! Wait until moderation process ends")
+      end
+
+      def self.validate_packages_list(apk_paths, aab_paths)
+        if apk_paths.length.positive? && aab_paths.length.positive?
+          UI.important("Maximum count of packages is #{APK_PACKAGES_COUNT} for APK and #{AAB_PACKAGES_COUNT} for AAB") if
+            apk_paths.length > APK_PACKAGES_COUNT || aab_paths.length > AAB_PACKAGES_COUNT
+        elsif apk_paths.length.positive?
+          UI.important("Maximum count of packages is #{APK_ONLY_PACKAGES_COUNT} for APK only") if
+            apk_paths.length > APK_ONLY_PACKAGES_COUNT
+        elsif aab_paths.length.positive?
+          UI.important("Maximum count of packages is #{AAB_PACKAGES_COUNT} for AAB only") if
+            aab_paths.length > AAB_PACKAGES_COUNT
+        end
+
+        counter = 0
+        has_error = false
+
+        array.each do |value|
+          has_error &&= !validate_apk(value, counter)
+          counter += 1
+        end
+
+        unless array.find_all { |x| x.include?(:is_main_apk) && x[:is_main_apk] == true }.empty?
+          UI.error(`Only one package can be chosen as main`)
+          has_error = true
+        end
+
+        UI.user_error!("Some APK settings contain errors. Check them above.") if has_error
       end
 
       def self.validate_apk(value, counter)

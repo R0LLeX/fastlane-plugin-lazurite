@@ -43,7 +43,6 @@ module Fastlane
 
             Helper.auth_data.setup(token, time)
             UI.message("Received a new authorization token. Current time: #{Helper.auth_data.created_at}, time to live: #{Helper.auth_data.time}")
-            UI.message(token)
           else
             request_error(response_data)
           end
@@ -178,15 +177,11 @@ module Fastlane
         end
       end
 
-      def self.upload_apk(data, timeout = 0)
+      def self.upload_package(data, is_aab, timeout = 0)
         check_auth_token
 
         body = {
           file: Faraday::Multipart::FilePart.new(data[:file], "application/octet-stream")
-        }
-        query = {
-          servicesType: data[:services_type],
-          isMainApk: data[:is_main_apk]
         }
         headers = build_headers(Helper.auth_data.token)
         headers["Content-Type"] = "multipart/form-data"
@@ -195,11 +190,18 @@ module Fastlane
           connection = Faraday.new(HOST) do |con|
             con.request :multipart
           end
-          response = connection.post("#{API_VERSION}/application/#{data[:package]}/version/#{data[:version]}/apk") do |req|
+          package_type = is_aab ? "aab" : "apk"
+          response = connection.post("#{API_VERSION}/application/#{data[:package]}/version/#{data[:version]}/#{package_type}") do |req|
             req.headers = headers
-            req.params = query
             req.body = body
             req.options.timeout = timeout if timeout.positive?
+
+            unless is_aab
+              req.params = {
+                servicesType: data[:services_type],
+                isMainApk: data[:is_main_apk]
+              }
+            end
           end
 
           response_data = JSON.parse(response.body)
@@ -260,7 +262,7 @@ module Fastlane
       public_class_method(:get_active_version)
       public_class_method(:upload_icon)
       public_class_method(:upload_screenshot)
-      public_class_method(:upload_apk)
+      public_class_method(:upload_package)
       public_class_method(:commit)
 
       private_class_method(:check_auth_token)
