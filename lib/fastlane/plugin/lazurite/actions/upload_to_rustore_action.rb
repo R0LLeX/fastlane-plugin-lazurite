@@ -228,7 +228,7 @@ module Fastlane
             UI.success("The draft ID = #{active_version} has been removed")
           else
             UI.message("Use existing draft with ID = #{active_version}. Data fields would be ignored.")
-            return
+            return active_version
           end
         end
 
@@ -248,8 +248,10 @@ module Fastlane
         data[:publish_date_time] = params.values[:publish_date_time] unless params.values[:publish_date_time].nil?
 
         UI.message("Creating a draft ...")
-        version = Helper::Uploader.create_draft(data, params[:timeout])
-        UI.success("A new draft has been created: #{version}")
+        active_version = Helper::Uploader.create_draft(data, params[:timeout])
+        UI.success("A new draft has been created: #{active_version}")
+        
+        active_version
       end
 
       def self.upload_apk(params, version)
@@ -297,7 +299,7 @@ module Fastlane
 
         counter = 0
 
-        params.values[:apk_paths].each do |aab|
+        params.values[:aab_paths].each do |aab|
           break if counter >= AAB_PACKAGES_COUNT
 
           data = {
