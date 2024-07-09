@@ -223,7 +223,6 @@ module Fastlane
           response = connection.post("#{API_VERSION}/application/#{data[:package]}/version/#{data[:version]}/commit") do |req|
             req.headers = build_headers(Helper.auth_data.token)
             req.params = query
-            req.body = body
             req.options.timeout = timeout if timeout.positive?
           end
 
