@@ -1,6 +1,6 @@
 lane :test do
   rustore_credentials(
-    company_id: ENV["RUSTORE_COMPANY_ID"],
+    key_id: ENV["RUSTORE_KEY_ID"],
     private_key: ENV["RUSTORE_PRIVATE_KEY"],
 #     private_key_file: ENV["RUSTORE_PRIVATE_KEY_FILE"],
   )

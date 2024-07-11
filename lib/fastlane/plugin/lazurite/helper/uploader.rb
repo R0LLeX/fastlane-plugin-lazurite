@@ -11,15 +11,15 @@ module Fastlane
         "Accept": "application/json"
       }.freeze
 
-      def self.authorize(company_id, private_key, timeout = 0)
+      def self.authorize(key_id, private_key, timeout = 0)
         timestamp = Time.at(Time.now.to_i - 10).iso8601
-        signature_data = "#{company_id}#{timestamp}"
+        signature_data = "#{key_id}#{timestamp}"
         private_key = "-----BEGIN RSA PRIVATE KEY-----\n#{private_key}\n-----END RSA PRIVATE KEY-----"
         signature = OpenSSL::PKey::RSA.new(private_key).sign(OpenSSL::Digest.new("SHA512"), signature_data)
         signature_hex = Base64.encode64(signature)
 
         body = {
-          companyId: company_id,
+          keyId: key_id,
           timestamp: timestamp,
           signature: signature_hex
         }
@@ -239,7 +239,7 @@ module Fastlane
         UI.user_error!("No authorization data has provided. You need to call `rustore_credentials` action first.") unless
           Helper.auth_data.token?
         UI.important("Authorization token is not valid. Renewing...")
-        authorize(Helper.config.company_id, Helper.config.private_key)
+        authorize(Helper.config.key_id, Helper.config.private_key)
       end
 
       def self.build_headers(auth_token)

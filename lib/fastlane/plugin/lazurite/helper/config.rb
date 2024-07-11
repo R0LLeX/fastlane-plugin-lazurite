@@ -3,7 +3,7 @@ require "time"
 module Fastlane
   module Helper
     class Config
-      attr_accessor :company_id
+      attr_accessor :key_id
       attr_accessor :private_key
     end
 
