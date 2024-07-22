@@ -1,3 +1,9 @@
+<p align="center">
+    <a href="#">
+        <img src="https://raw.githubusercontent.com/CheeryLee/fastlane-plugin-lazurite/master/assets/RuStore_Icon.png" height="150" />
+    </a>
+</p>
+
 # Lazurite
 
 <p align="center">
@@ -5,9 +11,12 @@
   <img alt="Gem" src="https://img.shields.io/badge/License-MIT-yellow.svg">
 </a>
 <a href="https://github.com/CheeryLee/fastlane-plugin-lazurite/releases">
-  <img alt="Gem" src="https://img.shields.io/github/v/release/CheeryLee/fastlane-plugin-lazurite?display_name=tag&include_prereleases">
+  <img alt="Gem" src="https://img.shields.io/github/v/release/CheeryLee/fastlane-plugin-lazurite?display_name=tag">
 </a>
-<img alt="Work in progress" src="https://img.shields.io/badge/stability-work_in_progress-lightgrey.svg">
+<a href="https://rubygems.org/gems/fastlane-plugin-lazurite">
+  <img alt="Gem" src="https://badge.fury.io/rb/fastlane-plugin-lazurite.svg">
+</a>
+<img alt="Gem" src="https://img.shields.io/gem/dt/fastlane-plugin-lazurite">
 </p>
 
 <br/>
@@ -16,16 +25,19 @@
 
 ## Возможности
 Данный плагин предлагает широкий функционал:
-* заливка пакета в магазин;
+* заливка APK/AAB-пакета в магазин;
 * добавление скриншотов и иконки;
 * изменение названия и описания приложения;
 * выбор категории и типа приложения;
 * непрерывная интеграция за счет автоматического удаления черновиков, не прошедших модерацию.
 
-
 ## Установка
 
-Чтобы начать работу, добавьте ссылку на плагин в своем файле `fastlane/Pluginfile`:
+Чтобы начать работу, вызовите это в своем проекте:
+```shell
+fastlane add_plugin lazurite
+```
+или, если вы хотите получить последнюю ревизию с ветки master, добавьте ссылку на плагин в файле `fastlane/Pluginfile`:
 ```ruby
 gem "fastlane-plugin-lazurite", git: "https://github.com/CheeryLee/fastlane-plugin-lazurite.git" 
 ```
