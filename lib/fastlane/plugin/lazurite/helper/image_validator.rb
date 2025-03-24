@@ -24,7 +24,7 @@ module Fastlane
       end
 
       def self.screenshot_orientation(path)
-        Helper::ScreenshotOrientation::LANDSCAPE
+        Helper::ScreenshotOrientation::PORTRAIT
 
         # TODO: PORTRAIT isn't supported by service
         # image = ImageSize.path(path)
