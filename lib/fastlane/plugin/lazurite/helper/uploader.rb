@@ -63,6 +63,14 @@ module Fastlane
           publishDateTime: data[:publish_date_time]
         }
 
+        unless data[:developer_contacts].nil? || data[:developer_contacts].empty?
+          contacts = {}
+          contacts[:email] = data[:developer_contacts][:email] if data[:developer_contacts][:email]
+          contacts[:website] = data[:developer_contacts][:website] if data[:developer_contacts][:website]
+          contacts[:vkCommunity] = data[:developer_contacts][:vk_community] if data[:developer_contacts][:vk_community]
+          body[:developerContacts] = [contacts] unless contacts.empty?
+        end
+
         begin
           connection = Faraday.new(HOST)
           response = connection.post("#{API_VERSION}/application/#{data[:package]}/version") do |req|

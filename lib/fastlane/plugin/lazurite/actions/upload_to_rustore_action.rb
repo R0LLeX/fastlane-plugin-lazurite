@@ -187,6 +187,18 @@ module Fastlane
             end
           ),
           FastlaneCore::ConfigItem.new(
+            key: :developer_contacts,
+            description: "Developer contacts: hash with optional keys :email, :website, :vk_community. At least one must be set if not filled in the developer console",
+            optional: true,
+            type: Hash,
+            verify_block: proc do |value|
+              allowed = [:email, :website, :vk_community]
+              unknown = value.keys.map(&:to_sym) - allowed
+              UI.user_error!("Unknown developer_contacts keys: #{unknown.join(', ')}. Allowed: #{allowed.join(', ')}") unless unknown.empty?
+              UI.user_error!("developer_contacts must contain at least one of: #{allowed.join(', ')}") if value.empty?
+            end
+          ),
+          FastlaneCore::ConfigItem.new(
             key: :remove_active_draft,
             description: "Automatically remove the last created draft",
             optional: true,
@@ -246,6 +258,8 @@ module Fastlane
         data[:changelog] = params.values[:changelog] if
           !params.values[:changelog].nil? && !params.values[:changelog].empty?
         data[:publish_date_time] = params.values[:publish_date_time] unless params.values[:publish_date_time].nil?
+        data[:developer_contacts] = params.values[:developer_contacts] if
+          !params.values[:developer_contacts].nil? && !params.values[:developer_contacts].empty?
 
         UI.message("Creating a draft ...")
         active_version = Helper::Uploader.create_draft(data, params[:timeout])
