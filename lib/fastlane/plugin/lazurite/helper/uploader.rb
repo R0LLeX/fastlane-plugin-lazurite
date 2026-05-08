@@ -68,7 +68,7 @@ module Fastlane
           contacts[:email] = data[:developer_contacts][:email] if data[:developer_contacts][:email]
           contacts[:website] = data[:developer_contacts][:website] if data[:developer_contacts][:website]
           contacts[:vkCommunity] = data[:developer_contacts][:vk_community] if data[:developer_contacts][:vk_community]
-          body[:developerContacts] = [contacts] unless contacts.empty?
+          body[:developerContacts] = contacts unless contacts.empty?
         end
 
         begin
