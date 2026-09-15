@@ -19,6 +19,7 @@ Gem::Specification.new do |spec|
   # since this would cause a circular dependency
 
   spec.add_dependency("faraday")
+  spec.add_dependency("faraday-multipart")
   spec.add_dependency("image_size")
 
   spec.add_development_dependency("bundler")

@@ -1,6 +1,7 @@
 require "time"
 require "openssl"
 require "base64"
+require "faraday/multipart"
 
 module Fastlane
   module Helper
